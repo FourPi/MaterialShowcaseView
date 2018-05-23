@@ -36,11 +36,11 @@ namespace MaterialShowcaseViewCore
 		private View _contentBox;
 		private TextView _titleTextView;
 		private TextView _contentTextView;
+		private TextView _nextButton;
 		private TextView _dismissButton;
 		private GravityFlags _gravity;
 		private int _contentBottomMargin;
 		private int _contentTopMargin;
-		private bool _dismissOnTouch;
 		private bool _shouldRender; // flag to decide when we should actually render
 		private bool _renderOverNav;
 		private Color _maskColour;
@@ -102,6 +102,8 @@ namespace MaterialShowcaseViewCore
 			_contentBox = contentView.FindViewById(Resource.Id.content_box);
 			_titleTextView = contentView.FindViewById<TextView>(Resource.Id.tv_title);
 			_contentTextView = contentView.FindViewById<TextView>(Resource.Id.tv_content);
+			_nextButton = contentView.FindViewById<TextView>(Resource.Id.tv_next);
+			_nextButton.SetOnClickListener(this);
 			_dismissButton = contentView.FindViewById<TextView>(Resource.Id.tv_dismiss);
 			_dismissButton.SetOnClickListener(this);
 		}
@@ -183,10 +185,6 @@ namespace MaterialShowcaseViewCore
 
 		public bool OnTouch(View v, MotionEvent @event)
 		{
-			if (_dismissOnTouch)
-			{
-				Hide();
-			}
 			if (!_targetTouchable || !_target.Bounds.Contains((int)@event.GetX(), (int)@event.GetY())) return true;
 			if (_dismissOnTargetTouch)
 			{
@@ -231,7 +229,7 @@ namespace MaterialShowcaseViewCore
          */
 		public void OnClick(View v)
 		{
-			Hide(true);
+			Hide(v == _dismissButton);
 		}
 
 		/**
@@ -280,19 +278,28 @@ namespace MaterialShowcaseViewCore
 					radius = _shape.Height / 2;
 				}
 
-				if (yPos > midPoint)
+				if (_shape is NoShape)
 				{
-					// target is in lower half of screen, we'll sit above it
 					_contentTopMargin = 0;
-					_contentBottomMargin = (height - yPos) + radius + _shapePadding;
-					_gravity = GravityFlags.Bottom;
+					_contentBottomMargin = 0;
+					_gravity = GravityFlags.Center;
 				}
 				else
 				{
-					// target is in upper half of screen, we'll sit below it
-					_contentTopMargin = yPos + radius + _shapePadding;
-					_contentBottomMargin = 0;
-					_gravity = GravityFlags.Top;
+					if (yPos > midPoint)
+					{
+						// target is in lower half of screen, we'll sit above it
+						_contentTopMargin = 0;
+						_contentBottomMargin = (height - yPos) + radius + _shapePadding;
+						_gravity = GravityFlags.Bottom;
+					}
+					else
+					{
+						// target is in upper half of screen, we'll sit below it
+						_contentTopMargin = yPos + radius + _shapePadding;
+						_contentBottomMargin = 0;
+						_gravity = GravityFlags.Top;
+					}
 				}
 			}
 
@@ -352,6 +359,25 @@ namespace MaterialShowcaseViewCore
 
 		}
 
+		private void SetNextText(string nextText)
+		{
+			if (_nextButton == null) return;
+			_nextButton.Text = nextText;
+			UpdateNextButton();
+		}
+
+		private void SetNextStyle(Typeface typeface)
+		{
+			if (_nextButton == null) return;
+			_nextButton.Typeface = typeface;
+		}
+
+		private void SetNextFontSize(float size)
+		{
+			if (_nextButton == null) return;
+			_nextButton.SetTextSize(ComplexUnitType.Dip, size);
+		}
+
 		private void SetDismissText(string dismissText)
 		{
 			if (_dismissButton == null) return;
@@ -363,6 +389,12 @@ namespace MaterialShowcaseViewCore
 		{
 			if (_dismissButton == null) return;
 			_dismissButton.Typeface = typeface;
+		}
+
+		private void SetDismissFontSize(float size)
+		{
+			if (_dismissButton == null) return;
+			_dismissButton.SetTextSize(ComplexUnitType.Dip, size);
 		}
 
 		private void SetTitleStyle(Typeface typeface)
@@ -377,12 +409,6 @@ namespace MaterialShowcaseViewCore
 			_contentTextView.Typeface = typeface;
 		}
 
-		private void SetDismissFontSize(float size)
-		{
-			if (_dismissButton == null) return;
-			_dismissButton.SetTextSize(ComplexUnitType.Dip, size);
-		}
-
 		private void SetTitleFontSize(float size)
 		{
 			if (_titleTextView == null) return;
@@ -395,33 +421,15 @@ namespace MaterialShowcaseViewCore
 			_contentTextView.SetTextSize(ComplexUnitType.Dip, size);
 		}
 
-		private void SetDismissGravity(GravityFlags gravity)
-		{
-			if (_dismissButton == null) return;
-			_dismissButton.Gravity = gravity;
-		}
-
-		private void SetTitleGravity(GravityFlags gravity)
-		{
-			if (_titleTextView == null) return;
-			_titleTextView.Gravity = gravity;
-		}
-
-		private void SetContentGravity(GravityFlags gravity)
-		{
-			if (_contentTextView == null) return;
-			_contentTextView.Gravity = gravity;
-		}
-
 		private void SetTitleTextColor(Color textColour) => _titleTextView?.SetTextColor(textColour);
 
 		private void SetContentTextColor(Color textColour) => _contentTextView?.SetTextColor(textColour);
 
+		private void SetNextTextColor(Color textColour) => _nextButton?.SetTextColor(textColour);
+
 		private void SetDismissTextColor(Color textColour) => _dismissButton?.SetTextColor(textColour);
 
 		private void SetShapePadding(int padding) => _shapePadding = padding;
-
-		private void SetDismissOnTouch(bool dismissOnTouch) => _dismissOnTouch = dismissOnTouch;
 
 		private void SetShouldRender(bool shouldRender) => _shouldRender = shouldRender;
 
@@ -463,19 +471,20 @@ namespace MaterialShowcaseViewCore
 			SetDelay(config.Delay);
 			SetFadeDuration(config.FadeDuration);
 			SetTitleFontSize(config.TitleTextFontSize);
-			SetTitleGravity(config.TitleTextGravity);
 			SetTitleStyle(config.TitleTextStyle);
 			SetTitleTextColor(config.TitleTextColor);
 
 			SetContentFontSize(config.ContentTextFontSize);
-			SetContentGravity(config.ContentTextGravity);
 			SetContentTextColor(config.ContentTextColor);
 			SetContentStyle(config.ContentTextStyle);
 
 			SetDismissFontSize(config.DismissTextFontSize);
-			SetDismissGravity(config.DismissTextGravity);
 			SetDismissTextColor(config.DismissTextColor);
 			SetDismissStyle(config.DismissTextStyle);
+
+			SetNextFontSize(config.NextTextFontSize);
+			SetNextTextColor(config.NextTextColor);
+			SetNextStyle(config.NextTextStyle);
 
 			SetMaskColour(config.MaskColor);
 			SetShape(config.Shape);
@@ -489,6 +498,14 @@ namespace MaterialShowcaseViewCore
 			// hide or show button
 			if (_dismissButton != null)
 				_dismissButton.Visibility = TextUtils.IsEmpty(_dismissButton.Text) ? ViewStates.Gone : ViewStates.Visible;
+
+		}
+
+		private void UpdateNextButton()
+		{
+			// hide or show button
+			if (_nextButton != null)
+				_nextButton.Visibility = TextUtils.IsEmpty(_nextButton.Text) ? ViewStates.Gone : ViewStates.Visible;
 
 		}
 
@@ -524,22 +541,7 @@ namespace MaterialShowcaseViewCore
 				return this;
 			}
 
-			/**
-             * Set the title text shown on the ShowcaseView.
-             */
-			public Builder SetDismissText(int resId) => SetDismissText(_activity.GetString(resId));
 
-			public Builder SetDismissText(string dismissText)
-			{
-				_showcaseView.SetDismissText(dismissText);
-				return this;
-			}
-
-			public Builder SetDismissStyle(Typeface typeface)
-			{
-				_showcaseView.SetDismissStyle(typeface);
-				return this;
-			}
 
 			public Builder SetContentStyle(Typeface typeface)
 			{
@@ -603,12 +605,6 @@ namespace MaterialShowcaseViewCore
 				return this;
 			}
 
-			public Builder SetDismissOnTouch(bool dismissOnTouch)
-			{
-				_showcaseView.SetDismissOnTouch(dismissOnTouch);
-				return this;
-			}
-
 			public Builder SetMaskColour(Color maskColour)
 			{
 				_showcaseView.SetMaskColour(maskColour);
@@ -624,6 +620,42 @@ namespace MaterialShowcaseViewCore
 			public Builder SetContentTextColor(Color textColour)
 			{
 				_showcaseView.SetContentTextColor(textColour);
+				return this;
+			}
+
+			public Builder SetNextText(string nextText)
+			{
+				_showcaseView.SetNextText(nextText);
+				return this;
+			}
+
+			public Builder SetNextStyle(Typeface typeface)
+			{
+				_showcaseView.SetNextStyle(typeface);
+				return this;
+			}
+
+			public Builder SetNextTextColor(Color textColour)
+			{
+				_showcaseView.SetNextTextColor(textColour);
+				return this;
+			}
+
+			public Builder SetNextFontSize(float size)
+			{
+				_showcaseView.SetNextFontSize(size);
+				return this;
+			}
+
+			public Builder SetDismissText(string dismissText)
+			{
+				_showcaseView.SetDismissText(dismissText);
+				return this;
+			}
+
+			public Builder SetDismissStyle(Typeface typeface)
+			{
+				_showcaseView.SetDismissStyle(typeface);
 				return this;
 			}
 
@@ -648,24 +680,6 @@ namespace MaterialShowcaseViewCore
 			public Builder SetContentFontSize(float size)
 			{
 				_showcaseView.SetContentFontSize(size);
-				return this;
-			}
-
-			public Builder SetDismissGravity(GravityFlags gravity)
-			{
-				_showcaseView.SetDismissGravity(gravity);
-				return this;
-			}
-
-			public Builder SetTitleGravity(GravityFlags gravity)
-			{
-				_showcaseView.SetTitleGravity(gravity);
-				return this;
-			}
-
-			public Builder SetContentGravity(GravityFlags gravity)
-			{
-				_showcaseView.SetContentGravity(gravity);
 				return this;
 			}
 

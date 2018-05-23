@@ -49,6 +49,9 @@ namespace MaterialShowcaseViewCore
 			// aapt resource value: 0x7f030003
 			public static int tv_dismiss = 2130903043;
 			
+			// aapt resource value: 0x7f030004
+			public static int tv_next = 2130903044;
+			
 			// aapt resource value: 0x7f030001
 			public static int tv_title = 2130903041;
 			

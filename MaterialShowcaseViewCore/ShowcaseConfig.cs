@@ -16,15 +16,15 @@ namespace MaterialShowcaseViewCore
 		public Color MaskColor { get; set; } = DefaultMaskColour;
 		public Color ContentTextColor { get; set; } = Color.ParseColor("#ffffff");
 		public Color TitleTextColor { get; set; } = Color.ParseColor("#ffffff");
+		public Color NextTextColor { get; set; } = Color.ParseColor("#ffffff");
 		public Color DismissTextColor { get; set; } = Color.ParseColor("#ffffff");
 		public Typeface TitleTextStyle { get; set; } = Typeface.DefaultBold;
 		public Typeface DismissTextStyle { get; set; } = Typeface.DefaultBold;
+		public Typeface NextTextStyle { get; set; } = Typeface.DefaultBold;
 		public Typeface ContentTextStyle { get; set; } = Typeface.Default;
-		public GravityFlags TitleTextGravity { get; set; } = GravityFlags.Center;
-		public GravityFlags DismissTextGravity { get; set; } = GravityFlags.Center;
-		public GravityFlags ContentTextGravity { get; set; } = GravityFlags.Center;
 		public float TitleTextFontSize { get; set; } = 30;
 		public float DismissTextFontSize { get; set; } = 15;
+		public float NextTextFontSize { get; set; } = 26;
 		public float ContentTextFontSize { get; set; } = 15;
 
 		public long FadeDuration { get; set; } = DefaultFadeTime;
