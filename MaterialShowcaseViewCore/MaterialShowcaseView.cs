@@ -1,7 +1,9 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Android.Annotation;
 using Android.App;
 using Android.Content;
+using Android.Content.PM;
 using Android.Graphics;
 using Android.OS;
 using Android.Text;
@@ -12,6 +14,7 @@ using Java.Lang;
 using MaterialShowcaseViewCore.Shape;
 using MaterialShowcaseViewCore.Target;
 using Math = System.Math;
+using Orientation = Android.Content.Res.Orientation;
 
 namespace MaterialShowcaseViewCore
 {
@@ -119,9 +122,10 @@ namespace MaterialShowcaseViewCore
         protected override void OnDraw(Canvas canvas)
         {
             base.OnDraw(canvas);
-
+			var lp = (LayoutParams)LayoutParameters;
             // don't bother drawing if we're not ready
             if (!_shouldRender) return;
+			if (lp == null) return;
 
             // get current dimensions
             var width = MeasuredWidth;
@@ -146,8 +150,10 @@ namespace MaterialShowcaseViewCore
 
             // clear canvas
             _canvas.DrawColor(Color.Transparent, PorterDuff.Mode.Clear);
-
-            // draw solid background
+			//
+			//			var rect = new RectF(lp.LeftMargin, lp.TopMargin, width - lp.RightMargin, height - lp.BottomMargin);
+			//			// draw solid background
+			//			_canvas.DrawRect(rect, new Paint { Color = _maskColour });
             _canvas.DrawColor(_maskColour);
 
             // Prepare eraser Paint if needed
@@ -248,22 +254,42 @@ namespace MaterialShowcaseViewCore
 
             if (_target != null)
             {
-
+				var lp = (LayoutParams)LayoutParameters;
                 /**
                  * If we're on lollipop then make sure we don't draw over the nav bar
                  */
                 if (!_renderOverNav && Build.VERSION.SdkInt >= BuildVersionCodes.Lollipop)
                 {
-                    _bottomMargin = GetSoftButtonsBarSizePort((Activity)Context);
-                    var contentLp = (LayoutParams)LayoutParameters;
-
-                    if (contentLp != null && contentLp.BottomMargin != _bottomMargin)
-                        contentLp.BottomMargin = _bottomMargin;
+					//					_bottomMargin = GetSoftButtonsBarSize((Activity)Context);
+					//					_bottomMargin = GetStatusBarSize((Activity)Context);
+					var activity = (Activity)Context;
+					var buttonSize = GetSoftButtonsBarSize(activity);
+					var statusSize = GetStatusBarSize(activity);
+					if (lp != null)
+					{
+						var orientation = activity.Resources.Configuration.Orientation;
+						if (orientation == Orientation.Landscape)
+						{
+							lp.TopMargin = statusSize;
+							lp.RightMargin = buttonSize;
+							lp.BottomMargin = 0;
+							//						SetPadding(0, statusSize, buttonSize, 0);
+						}
+						else
+						{
+							//						SetPadding(0, statusSize, 0, buttonSize);
+							lp.TopMargin = statusSize;
+							lp.BottomMargin = buttonSize;
+							lp.RightMargin = 0;
+						}
+					}
                 }
 
                 // apply the target position
                 var targetPoint = _target.Point;
                 var targetBounds = _target.Bounds;
+				if (lp != null)
+					targetPoint = new Point(targetPoint.X - lp.LeftMargin, targetPoint.Y - lp.TopMargin);
                 Position = targetPoint;
 
                 // now figure out whether to put content above or below it
@@ -861,7 +887,18 @@ namespace MaterialShowcaseViewCore
 
             }
 
-            ((ViewGroup)activity.Window.DecorView).AddView(this);
+			//			var view = (_target as ViewTarget)._view;
+			//			ViewGroup viewGroup = null;
+			//			while (view.Parent is ViewGroup)
+			//			{
+			//				viewGroup = (ViewGroup)view.Parent;
+			//				view = viewGroup;
+			//			}
+			//			
+			//			viewGroup?.AddView(this);
+
+			var view = ((ViewGroup)activity.Window.DecorView);
+			view?.AddView(this);
 
             SetShouldRender(true);
 
@@ -947,19 +984,32 @@ namespace MaterialShowcaseViewCore
          */
         public static void ResetAll(Context context) => PrefsManager.ResetAll(context);
 
-        public static int GetSoftButtonsBarSizePort(Activity activity)
+		public static int GetSoftButtonsBarSize(Activity activity)
         {
             // getRealMetrics is only available with API 17 and +
             if (Build.VERSION.SdkInt < BuildVersionCodes.JellyBeanMr1) return 0;
+			var orientation = activity.Resources.Configuration.Orientation;
             var metrics = new DisplayMetrics();
             activity.WindowManager.DefaultDisplay.GetMetrics(metrics);
-            var usableHeight = metrics.HeightPixels;
-            activity.WindowManager.DefaultDisplay.GetRealMetrics(metrics);
-            var realHeight = metrics.HeightPixels;
+			var usableHeight = orientation == Orientation.Landscape ? metrics.WidthPixels : metrics.HeightPixels;
+			var realMetrics = new DisplayMetrics();
+			activity.WindowManager.DefaultDisplay.GetRealMetrics(realMetrics);
+			var realHeight = orientation == Orientation.Landscape ? realMetrics.WidthPixels : realMetrics.HeightPixels;
             if (realHeight > usableHeight)
                 return realHeight - usableHeight;
             return 0;
         }
+
+		public static int GetStatusBarSize(Activity activity)
+		{
+			Rect rectangle = new Rect();
+			Window window = activity.Window;
+			window.DecorView.GetWindowVisibleDisplayFrame(rectangle);
+			int statusBarHeight = rectangle.Top;
+			//			int contentViewTop = window.FindViewById(Window.IdAndroidContent).Top;
+			//			int titleBarHeight = contentViewTop - statusBarHeight;
+			return statusBarHeight;
+		}
 
         private void SetRenderOverNavigationBar(bool renderOverNav)
         {
@@ -968,7 +1018,15 @@ namespace MaterialShowcaseViewCore
 
         public void OnGlobalLayout()
         {
-            SetTarget(_target);
+			try
+			{
+				SetTarget(_target);
+			}
+			catch (ObjectDisposedException e)
+			{
+				// target object is disposed, ditch the target
+				_target = null;
+			}
         }
     }
 }
