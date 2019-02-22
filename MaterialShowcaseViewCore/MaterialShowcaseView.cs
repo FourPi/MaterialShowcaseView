@@ -481,6 +481,11 @@ namespace MaterialShowcaseViewCore
 
         }
 
+        public void RemoveShowcaseListeners()
+        {
+            _listeners?.Clear();
+        }
+
         public void SetDetachedListener(IDetachedListener detachedListener) => _detachedListener = detachedListener;
 
         public void SetShape(IShape shape) => _shape = shape;
@@ -946,21 +951,26 @@ namespace MaterialShowcaseViewCore
         {
             Visibility = ViewStates.Invisible;
 
-            _animationFactory.AnimateInView(this, _target.Point, _fadeDurationInMillis, () =>
+            if (_target != null)
             {
-                Visibility = ViewStates.Visible;
-                NotifyOnDisplayed();
-            });
+                _animationFactory?.AnimateInView(this, _target.Point, _fadeDurationInMillis, () =>
+                {
+                    Visibility = ViewStates.Visible;
+                    NotifyOnDisplayed();
+                });
+            }
         }
 
         public void AnimateOut()
         {
-
-            _animationFactory.AnimateOutView(this, _target.Point, _fadeDurationInMillis, () =>
+            if (_target != null)
             {
-                Visibility = ViewStates.Invisible;
-                RemoveFromWindow();
-            });
+                _animationFactory?.AnimateOutView(this, _target.Point, _fadeDurationInMillis, () =>
+                {
+                    Visibility = ViewStates.Invisible;
+                    RemoveFromWindow();
+                });
+            }
         }
 
         public void ResetSingleUse()
