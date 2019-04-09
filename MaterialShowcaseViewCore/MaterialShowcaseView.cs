@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Android.Annotation;
 using Android.App;
 using Android.Content;
-using Android.Content.PM;
 using Android.Graphics;
 using Android.OS;
 using Android.Text;
@@ -246,9 +245,8 @@ namespace MaterialShowcaseViewCore
          * @param target
          */
         public void SetTarget(Target.Target target)
-        {
+        { 
             _target = target;
-
             // update dismiss button state
             UpdateDismissButton();
 
@@ -263,26 +261,29 @@ namespace MaterialShowcaseViewCore
 					//					_bottomMargin = GetSoftButtonsBarSize((Activity)Context);
 					//					_bottomMargin = GetStatusBarSize((Activity)Context);
 					var activity = (Activity)Context;
-					var buttonSize = GetSoftButtonsBarSize(activity);
+                    var buttonSize = GetSoftButtonsBarSize(activity);
 					var statusSize = GetStatusBarSize(activity);
-					if (lp != null)
+                    var orientation = activity.Resources.Configuration.Orientation;
+                    if (Build.VERSION.SdkInt >= BuildVersionCodes.P)
+                    {
+                        var windowInsets = activity.Window.DecorView.RootWindowInsets;
+                        statusSize = windowInsets.StableInsetTop;
+                        buttonSize = orientation == Orientation.Landscape ? windowInsets.StableInsetRight : windowInsets.StableInsetBottom;
+                    }
+                    if (lp != null)
 					{
-						var orientation = activity.Resources.Configuration.Orientation;
+                        lp.TopMargin = statusSize;
 						if (orientation == Orientation.Landscape)
 						{
-							lp.TopMargin = statusSize;
 							lp.RightMargin = buttonSize;
 							lp.BottomMargin = 0;
-							//						SetPadding(0, statusSize, buttonSize, 0);
 						}
 						else
 						{
-							//						SetPadding(0, statusSize, 0, buttonSize);
-							lp.TopMargin = statusSize;
 							lp.BottomMargin = buttonSize;
 							lp.RightMargin = 0;
 						}
-					}
+                    }
                 }
 
                 // apply the target position
